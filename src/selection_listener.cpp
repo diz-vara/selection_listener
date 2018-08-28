@@ -18,6 +18,7 @@ geometry_msgs::Quaternion orientation;
 
 void XSensCallback(const xsens_simple::xsens_msg& msg)
 {
+  ROS_INFO("orientation received");
   if (msg.has_orientation) {
     orientation = msg.orientation;
   }
@@ -30,6 +31,7 @@ cv::Mat snapshot;
 
 void ImageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
+  ROS_INFO("image received");
   snapshot=cv_bridge::toCvShare(msg,sensor_msgs::image_encodings::BGR8)->image;
 }
 
@@ -112,8 +114,11 @@ int main(int argc, char **argv)
    * away the oldest ones.
    */
   ros::Subscriber subSel = n.subscribe("/rviz_selected_points", 1000, SelCallback);
-  ros::Subscriber subImage = n.subscribe("/camera/basler_camera/image_raw", 10, ImageCallback);
   ros::Subscriber subXSens = n.subscribe("/XSens", 1000, XSensCallback);
+
+  image_transport::ImageTransport it(n);
+  image_transport::Subscriber subImage = it.subscribe("/camera/basler_camera/image_raw", 10, ImageCallback);
+
 
    /**
    * ros::spin() will enter a loop, pumping callbacks.  With this version, all
