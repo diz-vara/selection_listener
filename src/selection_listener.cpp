@@ -3,37 +3,72 @@
 #include "stdio.h"
 #include "iostream"
 #include "fstream"
+#include "xsens_simple/xsens_msg.h"
+#include "geometry_msgs/Quaternion.h"
+
+//#include <sensor_msgs.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <image_transport/image_transport.h>
+
 
 int cnt;
 
-/**
- * This tutorial demonstrates simple receipt of messages over the ROS system.
- */
-void chatterCallback(const sensor_msgs::PointCloud2& msg)
+geometry_msgs::Quaternion orientation;
+
+void XSensCallback(const xsens_simple::xsens_msg& msg)
+{
+  if (msg.has_orientation) {
+    orientation = msg.orientation;
+  }
+
+
+}
+
+
+cv::Mat snapshot;
+
+void ImageCallback(const sensor_msgs::ImageConstPtr& msg)
+{
+  snapshot=cv_bridge::toCvShare(msg,sensor_msgs::image_encodings::BGR8)->image;
+}
+
+void SelCallback(const sensor_msgs::PointCloud2& msg)
 {
   char filename[80];
-  sprintf(filename,"/home/undead/Documents/VoxelMap/out/%06d.csv", cnt);
+  sprintf(filename,"/media/undead/Data/Voxels/out/%06d.", cnt);
   ROS_INFO("I heard: PointCloud2 [height = %d, width = %d, %06d]",msg.height, msg.width,
 							cnt);
 
-  std::ofstream outfile;
-  outfile.open(filename, std::ios::out );
+  std::ofstream outFile;
+  cv::String csvName(filename);
+  csvName += "csv";
+  outFile.open(csvName.c_str(), std::ios::out );
 
   const char *cp =(const char*) msg.data.data();
   const float *fp  = (const float*)(cp);
   size_t step = 32; //read from msg
 
   for (int pnt = 0; pnt < msg.width; ++pnt) {
-    //outfile.write(cp, 16);
+    //outFile.write(cp, 16);
     //cp += step;
     
     for (int coord = 0; coord < 3; ++coord) {
-      outfile << *fp++;
+      outFile << *fp++;
       if (coord < 2)
-        outfile << ",  ";
+        outFile << ",  ";
     }
-    outfile << std::endl;
+    outFile << std::endl;
   }
+  outFile << std::endl << "Orientation:" << std::endl;
+  outFile << orientation;
+
+  cv::String jpgName(filename);
+  jpgName += "jpg";
+  if (snapshot.data) {
+    cv::imwrite(jpgName.c_str(), snapshot);
+  }
+
   cnt++;
 }
 
@@ -76,7 +111,9 @@ int main(int argc, char **argv)
    * is the number of messages that will be buffered up before beginning to throw
    * away the oldest ones.
    */
-  ros::Subscriber sub = n.subscribe("/rviz_selected_points", 1000, chatterCallback);
+  ros::Subscriber subSel = n.subscribe("/rviz_selected_points", 1000, SelCallback);
+  ros::Subscriber subImage = n.subscribe("/camera/basler_camera/image_raw", 10, ImageCallback);
+  ros::Subscriber subXSens = n.subscribe("/XSens", 1000, XSensCallback);
 
    /**
    * ros::spin() will enter a loop, pumping callbacks.  With this version, all

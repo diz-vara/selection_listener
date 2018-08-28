@@ -13,6 +13,10 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   nav_msgs
+  xsens_simple
+  OpenCV
+  cv_bridge
+  image_transport
 )
 
 ## System dependencies are found with CMake's conventions
@@ -120,6 +124,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -138,7 +143,7 @@ include_directories(
 #add_executable(${PROJECT_NAME}_node src/loam_listener_node.cpp)
 
 add_executable(selection_listener src/selection_listener.cpp)
-target_link_libraries(selection_listener ${catkin_LIBRARIES})
+target_link_libraries(selection_listener ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
